@@ -17,7 +17,7 @@ type Piece =
   | 'p' // 卒
   | ' '
 type BoardRow = [Piece, Piece, Piece, Piece, Piece, Piece, Piece, Piece, Piece]
-type Board = [
+export type Board = [
   BoardRow,
   BoardRow,
   BoardRow,
@@ -30,12 +30,12 @@ type Board = [
   BoardRow
 ]
 
-interface Player {
+export interface Player {
   ws: WebSocket
   position: string
 }
 
-interface Table {
+export interface Table {
   id: string
   red: string | null
   black: string | null
@@ -89,14 +89,18 @@ wss.on('connection', ws => {
   ws.on('close', () => console.log('Someone leaves'))
 })
 
-function generateId(prefix: string): string {
+export function generateId(prefix: string): string {
   let id: string
   do {
     id = prefix + (Math.floor(Math.random() * 9000) + 1000)
-  } while (isIdDuplicate(id))
+  } while ((global as any).isIdDuplicate(id))
   return id
 }
 
-function isIdDuplicate(id: string): boolean {
+export function isIdDuplicate(id: string): boolean {
+  const tables = (global as any).tables
+  const players = (global as any).players
   return tables.has(id) || players.has(id)
 }
+
+export default wss
