@@ -47,10 +47,16 @@ export interface Table {
   turn: 'red' | 'black'
 }
 
+type MessageType = 'Update Header' | 'Update Lobby' | 'Update Table'
+export interface Message {
+  type: MessageType
+  [key: string]: any
+}
+
 const PORT = 8080
 const players: Map<string, Player> = new Map<string, Player>()
 const tables: Map<string, Table> = new Map<string, Table>()
-const EMPTY_BOARD: Board = [
+export const EMPTY_BOARD: Board = [
   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -102,13 +108,16 @@ wss.on('connection', ws => {
   ws.on('message', (msg: string) => {
     const msgFromClient = JSON.parse(msg)
     const { type } = msgFromClient
-    if (type === 'Create Table') handleCreateTable(newPlayer)
+    if (type === 'Create Table') handleCreateTable(newPlayer, tables)
   })
 
   ws.on('close', () => console.log('Someone leaves'))
 })
 
-function handleCreateTable(player: Player): void {
+export function handleCreateTable(
+  player: Player,
+  tables: Map<string, Table>
+): void {
   const newTableId: string = generateId('table')
   const newTable: Table = {
     id: newTableId,
@@ -121,19 +130,30 @@ function handleCreateTable(player: Player): void {
     turn: 'red'
   }
   tables.set(newTableId, newTable)
-  player.position = newTableId
 
-  player.ws.send(
-    JSON.stringify({ type: 'Update Header', data: { tableId: newTableId } })
+  updatePlayerPosition(player, newTableId)
+  sendToPlayer({ type: 'Update Header', data: { tableId: newTableId } }, player)
+  broadToAll(
+    {
+      type: 'Update Header',
+      data: { tableCount: tables.size }
+    },
+    players
   )
-  players.forEach(player =>
-    player.ws.send(
-      JSON.stringify({
-        type: 'Update Header',
-        data: { tableCount: tables.size }
-      })
-    )
-  )
+}
+
+export function updatePlayerPosition(player: Player, position: string): void {
+  player.position = position
+}
+
+export function broadToAll(msg: Message, players: Map<string, Player>): void {
+  players.forEach(player => sendToPlayer(msg, player))
+}
+
+export function sendToPlayer(msg: Message, player: Player): void {
+  if (player.ws.readyState === WebSocket.OPEN) {
+    player.ws.send(JSON.stringify(msg))
+  }
 }
 
 export function generateId(prefix: string): string {
