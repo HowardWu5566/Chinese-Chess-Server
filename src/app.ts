@@ -118,6 +118,74 @@ wss.on('connection', ws => {
   ws.on('close', () => console.log('Someone leaves'))
 })
 
+export function handleBackToLobby(
+  player: Player,
+  tables: Map<string, Table>,
+  players: Map<string, Player>
+): void {
+  handlePlayerLeaveTable(player, tables, players)
+  updatePlayerPosition(player, 'lobby')
+
+  sendToPlayer(
+    {
+      type: 'Update Lobby',
+      data: {
+        // TODO
+      }
+    },
+    player
+  )
+}
+
+export function handlePlayerLeaveTable(
+  player: Player,
+  tables: Map<string, Table>,
+  players: Map<string, Player>
+): void {
+  const table = tables.get(player.position)
+  if (!table) {
+    console.error(`${player.position} not found`)
+    return
+  }
+
+  cancelPlayerReq(player, table)
+  removePlayerFromTable(player, table, players)
+  if (hasGameStarted(table)) gameover()
+  if (isTableEmpty(table)) deleteTable()
+}
+
+function isTableEmpty(table: Table): boolean {
+  return !table.red && !table.black && !table.spectators.length
+}
+
+function hasGameStarted(table: Table): boolean {
+  return table.start
+}
+
+export function cancelPlayerReq(player: Player, table: Table): void {
+  if (table.red === player.id && table.req.includes('red')) {
+    table.req = table.req.filter(item => item !== 'red')
+  } else if (table.black === player.id && table.req.includes('black')) {
+    table.req = table.req.filter(item => item !== 'black')
+  }
+}
+
+function gameover(): void {} //TODO
+
+export function removePlayerFromTable(
+  player: Player,
+  table: Table,
+  players: Map<string, Player>
+): void {
+  if (table.red === player.id) table.red = null
+  else if (table.black === player.id) table.black = null
+  else table.spectators = table.spectators.filter(id => id !== player.id)
+
+  broadcastToTable({ type: 'Update Table', data: {} }, table, players)
+}
+
+export function deleteTable(): void {}
+
 export function handleCreateTable(
   player: Player,
   tables: Map<string, Table>
@@ -154,6 +222,23 @@ export function broadToAll(msg: Message, players: Map<string, Player>): void {
   players.forEach(player => sendToPlayer(msg, player))
 }
 
+export function broadcastToTable(
+  msg: Message,
+  table: Table,
+  players: Map<string, Player>
+): void {
+  const playersOnTable = getPlayersOnTable(table)
+  playersOnTable.forEach(playerId => sendToPlayer(msg, players.get(playerId)!))
+}
+
+export function getPlayersOnTable(table: Table): string[] {
+  const playerIdArr = []
+  if (table.red) playerIdArr.push(table.red)
+  if (table.black) playerIdArr.push(table.black)
+  if (table.spectators.length) playerIdArr.push(...table.spectators)
+  return playerIdArr
+}
+
 export function sendToPlayer(msg: Message, player: Player): void {
   if (player.ws.readyState === WebSocket.OPEN) {
     player.ws.send(JSON.stringify(msg))
@@ -176,4 +261,4 @@ export function isIdDuplicate(
   return checkingRange.has(id)
 }
 
-export default wss
+// export default wss
