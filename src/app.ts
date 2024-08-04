@@ -72,43 +72,47 @@ export const EMPTY_BOARD: Board = [
 const wss = new WebSocketServer({ port: PORT })
 
 wss.on('connection', ws => {
-  const newPlayerId = generateId('player')
-  console.log(`${newPlayerId} connects to server`)
-  const newPlayer: Player = { id: newPlayerId, ws, position: 'lobby' }
-  players.set(newPlayerId, newPlayer)
+  const playerId = generateId('player')
+  console.log(`${playerId} connects to server`)
+  const player: Player = { id: playerId, ws, position: 'lobby' }
+  players.set(playerId, player)
   const playerCount = players.size
   const tableCount = tables.size
-  ws.send(
-    JSON.stringify({
+
+  sendToPlayer(
+    {
       type: 'Update Header',
-      data: { playerId: newPlayerId, tableCount }
-    })
+      data: { playerId, tableCount }
+    },
+    player
   )
-  ws.send(
-    JSON.stringify({
+
+  sendToPlayer(
+    {
       type: 'Update Lobby',
       data: {
         // TODO
       }
-    })
+    },
+    player
   )
-  players.forEach(player => {
-    if (player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(
-        JSON.stringify({
-          type: 'Update Header',
-          data: { playerCount }
-        })
-      )
-    }
-  })
+
+  broadToAll(
+    {
+      type: 'Update Header',
+      data: { playerCount }
+    },
+    players
+  )
 
   ws.on('error', console.error)
 
   ws.on('message', (msg: string) => {
     const msgFromClient = JSON.parse(msg)
     const { type } = msgFromClient
-    if (type === 'Create Table') handleCreateTable(newPlayer, tables)
+    if (type === 'Create Table') handleCreateTable(player, tables)
+    else if (type === 'Back to Lobby')
+      handleBackToLobby(player, tables, players)
   })
 
   ws.on('close', () => console.log('Someone leaves'))
