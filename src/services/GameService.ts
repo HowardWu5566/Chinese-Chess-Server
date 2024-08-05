@@ -7,10 +7,13 @@ import { Message } from '../types'
 import { generateId } from '../utils'
 
 export class GameService {
-  constructor(
-    private playerService: PlayerService,
-    private tableService: TableService
-  ) {}
+  private playerService: PlayerService
+  private tableService: TableService
+  constructor() {
+    this.playerService = new PlayerService()
+    this.tableService = new TableService()
+    this.handleNewConnection = this.handleNewConnection.bind(this)
+  }
 
   handleNewConnection(ws: WebSocket): void {
     const playerId = generateId('player', this.playerService.getPlayers())
