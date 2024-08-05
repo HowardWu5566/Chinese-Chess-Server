@@ -89,8 +89,8 @@ export class GameService {
 
     this.tableService.cancelPlayerReq(player)
     this.removePlayerFromTable(player)
-    if (this.tableService.hasGameStarted(tableId)) this.gameover()
-    if (this.tableService.isTableEmpty(tableId))
+    if (this.tableService.hasGameStarted(table)) this.gameover()
+    if (this.tableService.isTableEmpty(table))
       this.tableService.removeTable(tableId)
   }
 

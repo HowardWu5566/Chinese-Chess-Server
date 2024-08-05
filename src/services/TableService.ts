@@ -61,13 +61,11 @@ export class TableService {
     }
   }
 
-  isTableEmpty(tableId: string): boolean {
-    const table = this.getTable(tableId)!
+  isTableEmpty(table: Table): boolean {
     return !table.red && !table.black && !table.spectators.length
   }
 
-  hasGameStarted(tableId: string): boolean {
-    const table = this.getTable(tableId)!
+  hasGameStarted(table: Table): boolean {
     return table.start
   }
 
