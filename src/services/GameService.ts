@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws'
 
-import { Player, Table } from '../models'
+import { Player } from '../models'
 import { PlayerService } from './PlayerService'
 import { TableService } from './TableService'
 import { Message } from '../types'
@@ -80,70 +80,50 @@ export class GameService {
   }
 
   handlePlayerLeaveTable(player: Player): void {
-    const table = this.tableService.getTable(player.position)
+    const tableId = player.position
+    const table = this.tableService.getTable(tableId)
     if (!table) {
       console.error(`${player.position} not found`)
       return
     }
 
-    this.cancelPlayerReq(player, table)
-    this.removePlayerFromTable(player, table)
-    if (this.hasGameStarted(table)) this.gameover()
-    if (this.isTableEmpty(table)) this.tableService.removeTable(table.id)
+    this.tableService.cancelPlayerReq(player)
+    this.removePlayerFromTable(player)
+    if (this.tableService.hasGameStarted(tableId)) this.gameover()
+    if (this.tableService.isTableEmpty(tableId))
+      this.tableService.removeTable(tableId)
   }
 
-  private cancelPlayerReq(player: Player, table: Table): void {
-    if (table.red === player.id && table.req.includes('red')) {
-      table.req = table.req.filter(item => item !== 'red')
-    } else if (table.black === player.id && table.req.includes('black')) {
-      table.req = table.req.filter(item => item !== 'black')
-    }
-  }
-
-  private removePlayerFromTable(player: Player, table: Table): void {
+  private removePlayerFromTable(player: Player): void {
+    const tableId = player.position
+    const table = this.tableService.getTable(tableId)!
     if (table.red === player.id) {
       table.red = null
       this.broadcastToTable(
         { type: 'Update Table', data: { red: table.red } },
-        table
+        tableId
       )
     } else if (table.black === player.id) {
       table.black = null
       this.broadcastToTable(
         { type: 'Update Table', data: { black: table.black } },
-        table
+        tableId
       )
     } else {
       table.spectators = table.spectators.filter(id => id !== player.id)
       this.broadcastToTable(
         { type: 'Update Table', data: { spectators: table.spectators } },
-        table
+        tableId
       )
     }
   }
 
-  private broadcastToTable(msg: Message, table: Table): void {
-    const playersOnTable = this.getPlayersOnTable(table)
+  private broadcastToTable(msg: Message, tableId: string): void {
+    const playersOnTable = this.tableService.getPlayersOnTable(tableId)
     playersOnTable.forEach(playerId => {
       const player = this.playerService.getPlayer(playerId)
       if (player) this.playerService.sendToPlayer(msg, player)
     })
-  }
-
-  private getPlayersOnTable(table: Table): string[] {
-    const playerIdArr = []
-    if (table.red) playerIdArr.push(table.red)
-    if (table.black) playerIdArr.push(table.black)
-    if (table.spectators.length) playerIdArr.push(...table.spectators)
-    return playerIdArr
-  }
-
-  private isTableEmpty(table: Table): boolean {
-    return !table.red && !table.black && !table.spectators.length
-  }
-
-  private hasGameStarted(table: Table): boolean {
-    return table.start
   }
 
   private gameover(): void {
