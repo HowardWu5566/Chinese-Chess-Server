@@ -19,6 +19,8 @@ export class GameService {
     const player = new Player(playerId, ws, 'lobby')
     this.playerService.addPlayer(player)
 
+    const tableIds = this.tableService.getTableIds()
+
     this.playerService.sendToPlayer(
       {
         type: 'Update Header',
@@ -28,12 +30,7 @@ export class GameService {
     )
 
     this.playerService.sendToPlayer(
-      {
-        type: 'Update Lobby',
-        data: {
-          // TODO
-        }
-      },
+      { type: 'Update Lobby', data: { tableIds } },
       player
     )
 
@@ -69,16 +66,12 @@ export class GameService {
   }
 
   handleBackToLobby(player: Player): void {
+    const tableIds = this.tableService.getTableIds()
     this.handlePlayerLeaveTable(player)
     this.playerService.updatePlayerPosition(player, 'lobby')
 
     this.playerService.sendToPlayer(
-      {
-        type: 'Update Lobby',
-        data: {
-          // TODO
-        }
-      },
+      { type: 'Update Lobby', data: { tableIds } },
       player
     )
   }
@@ -105,11 +98,25 @@ export class GameService {
   }
 
   private removePlayerFromTable(player: Player, table: Table): void {
-    if (table.red === player.id) table.red = null
-    else if (table.black === player.id) table.black = null
-    else table.spectators = table.spectators.filter(id => id !== player.id)
-
-    this.broadcastToTable({ type: 'Update Table', data: {} }, table)
+    if (table.red === player.id) {
+      table.red = null
+      this.broadcastToTable(
+        { type: 'Update Table', data: { red: table.red } },
+        table
+      )
+    } else if (table.black === player.id) {
+      table.black = null
+      this.broadcastToTable(
+        { type: 'Update Table', data: { black: table.black } },
+        table
+      )
+    } else {
+      table.spectators = table.spectators.filter(id => id !== player.id)
+      this.broadcastToTable(
+        { type: 'Update Table', data: { spectators: table.spectators } },
+        table
+      )
+    }
   }
 
   private broadcastToTable(msg: Message, table: Table): void {

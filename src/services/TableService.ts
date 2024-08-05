@@ -33,6 +33,10 @@ export class TableService {
     return this.tables
   }
 
+  getTableIds(): string[] {
+    return Array.from(this.tables.keys())
+  }
+
   get tableCount(): number {
     return this.tables.size
   }
