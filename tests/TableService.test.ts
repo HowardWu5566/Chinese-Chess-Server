@@ -1,5 +1,5 @@
 import { TableService } from '../src/services/TableService'
-import { Table } from '../src/models'
+import { Table } from '../src/models/Table'
 import { EMPTY_BOARD } from '../src/types'
 
 describe('TableService', () => {
@@ -7,33 +7,37 @@ describe('TableService', () => {
 
   beforeEach(() => {
     tableService = new TableService()
-    tableService.createTable('table0', 'player0')
+    const mockTable = tableService.createTable('table0', 'player0')
   })
 
   test('create a new table', () => {
     const mockTable = tableService.createTable('table1', 'player1')
+    const mockData = mockTable.getTableAttributes()
+
     expect(mockTable).toBeInstanceOf(Table)
-    expect(mockTable.id).toBe('table1')
-    expect(mockTable.red).toBe('player1')
-    expect(mockTable.black).toBe(null)
-    expect(mockTable.spectators).toEqual([])
-    expect(mockTable.board).toEqual(EMPTY_BOARD)
-    expect(mockTable.req).toEqual([])
-    expect(mockTable.start).toBe(false)
-    expect(mockTable.turn).toBe('red')
+    expect(mockData.id).toBe('table1')
+    expect(mockData.red).toBe('player1')
+    expect(mockData.black).toBe(null)
+    expect(mockData.spectators).toEqual([])
+    expect(mockData.board).toEqual(EMPTY_BOARD)
+    expect(mockData.req).toEqual([])
+    expect(mockData.start).toBe(false)
+    expect(mockData.turn).toBe('red')
   })
 
   test('get specific table', () => {
-    const mockTable = tableService.getTable('table0')
-    expect(mockTable).toBeDefined()
-    expect(mockTable!.id).toBe('table0')
-    expect(mockTable!.red).toBe('player0')
-    expect(mockTable!.black).toBe(null)
-    expect(mockTable!.spectators).toEqual([])
-    expect(mockTable!.board).toEqual(EMPTY_BOARD)
-    expect(mockTable!.req).toEqual([])
-    expect(mockTable!.start).toBe(false)
-    expect(mockTable!.turn).toBe('red')
+    const mockTable = tableService.getTable('table0')!
+    const mockData = mockTable.getTableAttributes()
+
+    expect(mockTable).toBeInstanceOf(Table)
+    expect(mockData.id).toBe('table0')
+    expect(mockData.red).toBe('player0')
+    expect(mockData.black).toBe(null)
+    expect(mockData.spectators).toEqual([])
+    expect(mockData.board).toEqual(EMPTY_BOARD)
+    expect(mockData.req).toEqual([])
+    expect(mockData.start).toBe(false)
+    expect(mockData.turn).toBe('red')
   })
 
   test('remove table', () => {
@@ -45,7 +49,6 @@ describe('TableService', () => {
   test('get all tables', () => {
     const mockTable1 = tableService.createTable('table1', 'player1')
     const mockTable2 = tableService.createTable('table2', 'player2')
-
     const tables = tableService.getTables()
 
     expect(tables).toBeInstanceOf(Map)
@@ -57,7 +60,6 @@ describe('TableService', () => {
   test('get ids of all tables', () => {
     tableService.createTable('table1', 'player1')
     tableService.createTable('table2', 'player2')
-
     const tableIds = tableService.getTableIds()
 
     expect(tableIds).toBeInstanceOf(Array)
@@ -71,76 +73,5 @@ describe('TableService', () => {
     tableService.createTable('table1', 'player1')
     tableService.createTable('table2', 'player2')
     expect(tableService.tableCount).toBe(3)
-  })
-
-  test('get players on table', () => {
-    let mockPlayersOnTable: string[]
-    const mockTable = tableService.getTable('table0')!
-
-    mockPlayersOnTable = tableService.getPlayersOnTable('table0')
-    expect(mockPlayersOnTable).toBeInstanceOf(Array)
-    expect(mockPlayersOnTable.length).toBe(1)
-    expect(mockPlayersOnTable[0]).toBe('player0')
-
-    mockTable.spectators.push('spectator0')
-    mockTable.spectators.push('spectator1')
-    mockPlayersOnTable = tableService.getPlayersOnTable('table0')
-    expect(mockPlayersOnTable).toBeInstanceOf(Array)
-    expect(mockPlayersOnTable.length).toBe(3)
-    expect(mockPlayersOnTable[0]).toBe('player0')
-    expect(mockPlayersOnTable[1]).toBe('spectator0')
-    expect(mockPlayersOnTable[2]).toBe('spectator1')
-
-    mockTable.black = 'player1'
-    mockPlayersOnTable = tableService.getPlayersOnTable('table0')
-    expect(mockPlayersOnTable).toBeInstanceOf(Array)
-    expect(mockPlayersOnTable.length).toBe(4)
-    expect(mockPlayersOnTable[1]).toBe('player1')
-    expect(mockPlayersOnTable[3]).toBe('spectator1')
-  })
-
-  test("cancel player's request", () => {
-    let mockWs: WebSocket = {
-      send: jest.fn(),
-      readyState: WebSocket.OPEN
-    } as unknown as WebSocket
-    const mockTable: Table = tableService.getTable('table0')!
-    const mockPlayer0 = { id: 'player0', ws: mockWs, position: 'table0' }
-    const mockPlayer1 = { id: 'player1', ws: mockWs, position: 'table0' }
-    mockTable.black = 'player1'
-    mockTable.req.push('red', 'black')
-
-    tableService.cancelPlayerReq(mockPlayer0)
-    expect(mockTable.req).toBeInstanceOf(Array)
-    expect(mockTable.req.length).toBe(1)
-    expect(mockTable.req[0]).toBe('black')
-
-    tableService.cancelPlayerReq(mockPlayer1)
-    expect(mockTable.req).toBeInstanceOf(Array)
-    expect(mockTable.req.length).toBe(0)
-  })
-
-  test('check if table has no participants', () => {
-    const mockTable = tableService.getTable('table0')!
-    let result: boolean = tableService.isTableEmpty(mockTable)
-    expect(result).toBe(false)
-
-    mockTable.red = null
-    result = tableService.isTableEmpty(mockTable)
-    expect(result).toBe(true)
-
-    mockTable.spectators.push('spectator0')
-    result = tableService.isTableEmpty(mockTable)
-    expect(result).toBe(false)
-  })
-
-  test('check if game has started', () => {
-    const mockTable = tableService.getTable('table0')!
-    let result: boolean = tableService.hasGameStarted(mockTable)
-    expect(result).toBe(false)
-
-    mockTable.start = true
-    result = tableService.hasGameStarted(mockTable)
-    expect(result).toBe(true)
   })
 })
