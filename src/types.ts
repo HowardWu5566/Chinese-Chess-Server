@@ -1,3 +1,5 @@
+export type Role = 'red' | 'black' | 'spectator'
+
 export type Piece =
   | 'K' // 帥
   | 'k' // 將
@@ -37,12 +39,6 @@ export type Board = [
   BoardRow,
   BoardRow
 ]
-
-export type MessageType = 'Update Header' | 'Update Lobby' | 'Update Table'
-export interface Message {
-  type: MessageType
-  data: any
-}
 
 export const EMPTY_BOARD: Board = [
   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
