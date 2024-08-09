@@ -52,6 +52,17 @@ export class GameService {
     else if (type === 'Back to Lobby') this.handleBackToLobby(player)
     else if (type === 'Enter Table') this.handleEnterTable(player, data.tableId)
     else if (type === 'Start Game') this.handleStartGame(player)
+    else if (type === 'Ask for Draw') this.handleAskForDraw(player)
+    else if (type === 'Surrender') this.gameover()
+  }
+
+  handleAskForDraw(player: Player) {
+    const playerId: string = player.getId()
+    const tableId: string = player.getPosition()
+    const table: Table = this.tableService.getTable(tableId)!
+
+    table.addPlayerRequest(playerId)
+    if (table.hasBothRequests()) this.gameover()
   }
 
   handleStartGame(player: Player): void {
