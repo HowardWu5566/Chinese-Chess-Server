@@ -51,6 +51,28 @@ export class GameService {
     if (type === 'Create Table') this.handleCreateTable(player)
     else if (type === 'Back to Lobby') this.handleBackToLobby(player)
     else if (type === 'Enter Table') this.handleEnterTable(player, data.tableId)
+    else if (type === 'Start Game') this.handleStartGame(player)
+  }
+
+  handleStartGame(player: Player): void {
+    const playerId: string = player.getId()
+    const tableId: string = player.getPosition()
+    const table: Table = this.tableService.getTable(tableId)!
+
+    table.addPlayerRequest(playerId)
+    if (table.hasBothRequests()) table.startGame()
+  }
+
+  handleEnterTable(player: Player, tableId: string) {
+    const playerId = player.getId()
+    const table: Table = this.tableService.getTable(tableId)!
+    const { red, black, spectators } = table.getTableAttributes()
+    table.addPlayer(playerId)
+    const msgToPlayer = new TableMessage({ table })
+    this.messageService.sendToPlayer(msgToPlayer, player)
+
+    const msgToTable = new TableMessage({ red, black, spectators })
+    this.messageService.broadcastToTable(msgToTable, tableId)
   }
 
   handlePlayerDisconnect(player: Player): void {
@@ -84,6 +106,7 @@ export class GameService {
     player.updatePosition('lobby')
 
     const msgToPlayer = new LobbyMessage({ tableIds })
+    this.messageService.sendToPlayer(msgToPlayer, player)
   }
 
   handlePlayerLeaveTable(player: Player): void {
