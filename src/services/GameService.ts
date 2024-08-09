@@ -42,7 +42,7 @@ export class GameService {
 
     ws.on('error', console.error)
     ws.on('message', (msg: string) => this.handlePlayerMessage(player, msg))
-    ws.on('close', () => console.log('Someone leaves'))
+    ws.on('close', () => this.handlePlayerDisconnect(player))
   }
 
   handlePlayerMessage(player: Player, msg: string): void {
@@ -50,6 +50,19 @@ export class GameService {
     const { type, data } = msgFromClient
     if (type === 'Create Table') this.handleCreateTable(player)
     else if (type === 'Back to Lobby') this.handleBackToLobby(player)
+    else if (type === 'Enter Table') this.handleEnterTable(player, data.tableId)
+  }
+
+  handlePlayerDisconnect(player: Player): void {
+    const playerId = player.getId()
+    console.log(playerId + ' leaves')
+
+    if (player.getPosition() !== 'lobby') this.handlePlayerLeaveTable(player)
+    this.playerService.removePlayer(playerId)
+
+    const playerCount = this.playerService.playerCount
+    const msgToAll = new HeaderMessage({ playerCount })
+    this.messageService.broadcastToAll(msgToAll)
   }
 
   handleCreateTable(player: Player): void {
@@ -78,9 +91,9 @@ export class GameService {
     const table = this.tableService.getTable(tableId)!
     const playerId = player.getId()
 
-    table.cancelPlayerRequest(playerId)
     table.removePlayer(playerId)
-    if (table.hasGameStarted()) this.gameover()
+    if (table.isRedOrBlack(playerId)) table.cancelPlayerRequest(playerId)
+    if (table.isRedOrBlack(playerId) && table.hasGameStarted()) this.gameover()
     if (table.isEmpty()) this.tableService.removeTable(tableId)
     else {
       const { red, black, spectators } = table.getTableAttributes()
