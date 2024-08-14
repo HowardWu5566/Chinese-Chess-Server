@@ -1,5 +1,7 @@
 export type Role = 'red' | 'black' | 'spectator'
 
+export type Position = { x: number; y: number }
+
 export type Piece =
   | 'K' // 帥
   | 'k' // 將

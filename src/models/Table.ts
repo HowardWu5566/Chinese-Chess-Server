@@ -1,4 +1,4 @@
-import { Role, Board, EMPTY_BOARD } from '../types'
+import { Piece, Role, Board, Position, EMPTY_BOARD } from '../types'
 
 export class Table {
   private id: string
@@ -54,9 +54,7 @@ export class Table {
 
   cancelPlayerRequest(playerId: string): void {
     const role: Role = this.getPlayerRole(playerId)
-    if (role !== 'spectator') {
-      this.req = this.req.filter(item => item !== role)
-    }
+    this.req = this.req.filter(item => item !== role)
   }
 
   hasBothRequests(): boolean {
@@ -64,6 +62,57 @@ export class Table {
     const hasRedRequested: boolean = this.req.includes('red')
     const hasBlackRequested: boolean = this.req.includes('black')
     return hasTwoReq && hasRedRequested && hasBlackRequested
+  }
+
+  getTurn(): 'red' | 'black' {
+    return this.turn
+  }
+
+  changeTurn(): void {
+    this.turn = this.getTurn() === 'red' ? 'black' : 'red'
+  }
+
+  isPlayersTurn(playerId: string): boolean {
+    const currentTurn = this.turn
+    return this[currentTurn] === playerId
+  }
+
+  getBoard(): Board {
+    return this.board
+  }
+
+  initializeBoard(): void {
+    this.board = [
+      ['r', 'h', 'e', 'a', 'k', 'a', 'e', 'h', 'r'],
+      [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+      [' ', 'c', ' ', ' ', ' ', ' ', ' ', 'c', ' '],
+      ['p', ' ', 'p', ' ', 'p', ' ', 'p', ' ', 'p'],
+      [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+      [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+      ['P', ' ', 'P', ' ', 'P', ' ', 'P', ' ', 'P'],
+      [' ', 'C', ' ', ' ', ' ', ' ', ' ', 'C', ' '],
+      [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+      ['R', 'H', 'E', 'A', 'K', 'A', 'E', 'H', 'R']
+    ]
+  }
+
+  updateBoard(position: Position, newPosition: Position): void {
+    const fromX = position.x
+    const fromY = position.y
+    const toX = newPosition.x
+    const toY = newPosition.y
+    this.board[toY][toX] = this.board[fromY][fromX]
+    this.board[fromY][fromX] = ' '
+  }
+
+  getPiece(position: Position): Piece {
+    const { x, y } = position
+    return this.board[y][x]
+  }
+
+  isRedOrBlack(playerId: string): boolean {
+    const role: Role = this.getPlayerRole(playerId)
+    return role !== 'spectator'
   }
 
   isEmpty(): boolean {
